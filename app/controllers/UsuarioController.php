@@ -1,8 +1,14 @@
 <?php
+
 require_once './models/Usuario.php';
+require_once './models/Mozo.php';
+require_once './models/Cervecero.php';
+require_once './models/Bartender.php';
+require_once './models/Socio.php';
+require_once './models/Cocinero.php';
 require_once './interfaces/IApiUsable.php';
 
-class UsuarioController extends Usuario implements IApiUsable
+class UsuarioController implements IApiUsable
 {
     public function CargarUno($request, $response, $args)
     {
@@ -10,9 +16,39 @@ class UsuarioController extends Usuario implements IApiUsable
 
         $usuario = $parametros['usuario'];
         $clave = $parametros['clave'];
+        $rol = $parametros['rol'];
+
+        switch ($rol) {
+          case 'mozo':
+            $clase = 'Mozo';
+            break;
+          case 'bartender':
+            $clase = 'Bartender';
+            break;
+          case 'cervecero':
+            $clase = 'Cervecero';
+            break;
+          case 'cocinero':
+            $clase = 'Cocinero';
+            break;
+          case 'socio':
+            $clase = 'Socio';
+            break;
+          case 'cliente':
+            $clase = 'Cliente';
+            break;
+
+          default:
+            $payload = json_encode(array("mensaje" => "Opcion invalida. Los usuarios a crear son: 'cliente', 'mozo', 'bartender', 'cervecero' y 'socio'"));
+
+            $response->getBody()->write($payload);
+            return $response
+              ->withHeader('Content-Type', 'application/json');
+            break;
+        }
 
         // Creamos el usuario
-        $usr = new Usuario();
+        $usr = new $clase();
         $usr->usuario = $usuario;
         $usr->clave = $clave;
         $usr->crearUsuario();
@@ -39,6 +75,17 @@ class UsuarioController extends Usuario implements IApiUsable
     public function TraerTodos($request, $response, $args)
     {
         $lista = Usuario::obtenerTodos();
+        $payload = json_encode(array("listaUsuario" => $lista));
+
+        $response->getBody()->write($payload);
+        return $response
+          ->withHeader('Content-Type', 'application/json');
+    }
+
+    public function TraerPorRol($request, $response, $args)
+    {        
+        $lista = Usuario::obtenerPorRol($args['rol']);
+
         $payload = json_encode(array("listaUsuario" => $lista));
 
         $response->getBody()->write($payload);
