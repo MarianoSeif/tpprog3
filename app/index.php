@@ -13,7 +13,7 @@ use Slim\Routing\RouteContext;
 require __DIR__ . '/../vendor/autoload.php';
 
 require_once './db/AccesoDatos.php';
-require_once './middlewares/MW_ejercicio1.php';
+//require_once './middlewares/MW_ejercicio1.php';
 
 require_once './controllers/UsuarioController.php';
 require_once './controllers/ProductoController.php';
@@ -25,6 +25,8 @@ $dotenv->safeLoad();
 
 // Instantiate App
 $app = AppFactory::create();
+
+$app->setBasePath('/app');
 
 // Add error middleware
 $app->addErrorMiddleware(true, true, true);
