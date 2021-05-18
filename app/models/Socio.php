@@ -2,8 +2,8 @@
 
 class Socio extends Usuario
 {
-    public function __construct($id, $usuario, $clave)
+    public function __construct($usuario = null, $clave = null)
     {
-        parent::__construct($id, $usuario, $clave, 'socio');
+        parent::__construct('socio', $usuario, $clave);
     }
 }
