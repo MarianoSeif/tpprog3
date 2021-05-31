@@ -8,8 +8,17 @@ require_once './models/Socio.php';
 require_once './models/Cocinero.php';
 require_once './interfaces/IApiUsable.php';
 
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\RequestHandlerInterface;
+
 class UsuarioController implements IApiUsable
 {
+    public function login(Request $request, Response $response): Response
+    {
+        return new Response('Test');
+    }
+    
     public function CargarUno($request, $response, $args)
     {
         $parametros = $request->getParsedBody();
@@ -83,7 +92,7 @@ class UsuarioController implements IApiUsable
     }
 
     public function TraerPorRol($request, $response, $args)
-    {        
+    {
         $lista = Usuario::obtenerPorRol($args['rol']);
 
         $payload = json_encode(array("listaUsuario" => $lista));
@@ -120,4 +129,5 @@ class UsuarioController implements IApiUsable
         return $response
           ->withHeader('Content-Type', 'application/json');
     }
+
 }

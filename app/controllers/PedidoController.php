@@ -1,10 +1,49 @@
 <?php
 
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+
 require_once './models/Pedido.php';
 require_once './interfaces/IApiUsable.php';
 
 class PedidoController implements IApiUsable
 {
+    public function cambiarEstado(Request $request, Response $response)
+    {
+        $data = $request->getParsedBody();
+        $pedido = Pedido::obtenerPedido($data['codigo']);
+                
+        if(!$pedido){
+            $response = $response->withStatus(404, 'No existe un pedido con ese código');
+        }else{
+            switch ($data['estado']) {
+                case 'recibido':
+                    var_dump('recibido');
+                    break;
+                case 'en preparacion':
+                    var_dump('en prep');
+                    break;
+                case 'listo para servir':
+                    var_dump('listo');
+                    break;
+                case 'servido':
+                    var_dump('servido');
+                    break;
+                
+                default:
+                    $response->withStatus(400, 'Los estados permitidos son: 
+                                                        1-recibido,
+                                                        2-en preparacion,
+                                                        3-listo para servir,
+                                                        4-servido');
+                    return $response;
+                    break;
+            }
+            $response = $response->withStatus(200, 'El pedido cambió de estado');
+        }
+        return $response;
+    }
+    
     public function CargarUno($request, $response, $args)
     {
         $parametros = $request->getParsedBody();
