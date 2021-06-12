@@ -1,15 +1,21 @@
 <?php
 
-require_once './db/AccesoDatos.php';
-
-class Usuario
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+class Usuario extends Model
 {
-    public $id;
-    public $usuario;
-    public $clave;
-    public $rol;
+    use SoftDeletes;
+    
+    public $timestamps = true;
 
-    public function __construct($rol = null, $usuario = null, $clave = null)
+    protected $fillable = [
+        'usuario', 'clave', 'rol'
+    ];
+
+    const ROLES = ['mozo', 'socio', 'bartender', 'cervecero', 'cocinero', 'cliente'];
+    const ESTADOS = ['activo', 'licencia', 'suspendido', 'despedido'];
+
+    /* public function __construct($rol = null, $usuario = null, $clave = null)
     {
         if($usuario != null){
             $this->$usuario = $usuario;
@@ -91,5 +97,5 @@ class Usuario
         $consulta->execute();
 
         return $consulta->fetch()['clave'];
-    }
+    } */
 }

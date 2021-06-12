@@ -1,13 +1,20 @@
 <?php
 
-class Producto
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+class Producto extends Model
 {
-    public $nombre;
-    public $codigo;
-    public $tipo;
-    public $precio;
+    use SoftDeletes;
+    
+    public $timestamps = true;
 
-    public function __construct($nombre = null, $codigo = null, $tipo = null, $precio = null)
+    protected $fillable = [
+        'nombre', 'codigo', 'tipo', 'precio'
+    ];
+
+    const TIPOS = ['comida', 'bebida'];
+
+    /* public function __construct($nombre = null, $codigo = null, $tipo = null, $precio = null)
     {
         if($nombre != null){
             $this->nombre = $nombre;
@@ -83,5 +90,5 @@ class Producto
         $consulta->bindValue(':id', $codigo, PDO::PARAM_INT);
         $consulta->bindValue(':fechaBaja', date_format($fecha, 'Y-m-d H:i:s'));
         $consulta->execute();
-    }
+    } */
 }

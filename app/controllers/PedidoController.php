@@ -11,33 +11,41 @@ class PedidoController implements IApiUsable
     public function cambiarEstado(Request $request, Response $response)
     {
         $data = $request->getParsedBody();
-        $pedido = Pedido::obtenerPedido($data['codigo']);
+        $pedido = new Pedido();
+        try {
+            /** @var Pedido $pedido */
+            $pedido = $pedido->where('codigo', $data['codigo'])->first();
+        } catch (\Throwable $th) {
+            $response = $response->withStatus(500, 'Ocurrió un problema al intentar acceder a la base de datos');
+            return $response;
+        }
                 
         if(!$pedido){
             $response = $response->withStatus(404, 'No existe un pedido con ese código');
         }else{
             switch ($data['estado']) {
                 case 'recibido':
-                    var_dump('recibido');
+                    $pedido->estado ='recibido';
                     break;
                 case 'en preparacion':
-                    var_dump('en prep');
+                    $pedido->estado = 'en preparacion';
                     break;
                 case 'listo para servir':
-                    var_dump('listo');
+                    $pedido->estado = 'listo para servir';
                     break;
                 case 'servido':
-                    var_dump('servido');
-                    break;
-                
+                    $pedido->estado = 'servido';
+                    break;                
                 default:
-                    $response->withStatus(400, 'Los estados permitidos son: 
-                                                        1-recibido,
-                                                        2-en preparacion,
-                                                        3-listo para servir,
-                                                        4-servido');
+                    $response = $response->withStatus(400, 'Los estados permitidos son: 1-recibido, 2-en preparacion, 3-listo para servir, 4-servido');
                     return $response;
                     break;
+            }
+            try {
+                $pedido->save();
+            } catch (\Throwable $th) {
+                $response = $response->withStatus(500, 'Ocurrió un problema al intentar acceder a la base de datos');
+                return $response;
             }
             $response = $response->withStatus(200, 'El pedido cambió de estado');
         }

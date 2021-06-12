@@ -1,22 +1,25 @@
 <?php
 
-class Pedido
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+class Pedido extends Model
 {
-    public $codigo;
-    public $estado;
-    public $mesa;
-    public $creado;
-    public $tiempoFinalizacion;
-    public $finalizado;
+    use SoftDeletes;
+    
+    public $timestamps = true;
+
+    protected $fillable = [
+        'codigo', 'estado', 'mesa'
+    ];
 
     public function crearPedido()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO pedidos (codigo, estado, mesa, creado) VALUES (:codigo, :estado, :mesa, :creado)");
+        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO pedidos (codigo, estado, mesa, created_at) VALUES (:codigo, :estado, :mesa, :created_at)");
         $consulta->bindValue(':codigo', $this->codigo, PDO::PARAM_INT);
         $consulta->bindValue(':estado', $this->estado, PDO::PARAM_STR);
         $consulta->bindValue(':mesa', $this->mesa, PDO::PARAM_STR);
-        $consulta->bindValue(':creado', $this->creado, PDO::PARAM_STR);
+        $consulta->bindValue(':created_at', $this->createdAt, PDO::PARAM_STR);
         $consulta->execute();
 
         return $objAccesoDatos->obtenerUltimoId();

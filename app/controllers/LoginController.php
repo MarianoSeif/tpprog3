@@ -17,19 +17,22 @@ class LoginController
         $usuario = $params['usuario'];
         $pass = $params['pass'];
 
-        $objUsuario = Usuario::obtenerUsuario($usuario);
-        
-        if(password_verify ($pass, $objUsuario->clave)){
-            $datos = ['usuario' => $usuario, 'rol' => $objUsuario->rol];
-            $token = AutentificadorJWT::CrearToken($datos);
-            $reponse->getBody()->write(json_encode(["token" => $token]));
-            $response->withStatus(200);
+        $user = Usuario::where('usuario', '=', $usuario)->first();
+
+        if(!$user){
+            $reponse->getBody()->write(json_encode(["mensaje" => "Usuario no encontrado"]));
+            $response = $response->withStatus(400);
         }else{
-            $reponse->getBody()->write(json_encode(["mensaje" => "Acceso Denegado"]));
-            $response->withStatus(400);
+            if(password_verify ($pass, $user->clave)){
+                $datos = ['usuario' => $usuario, 'rol' => $user->rol];
+                $token = AutentificadorJWT::CrearToken($datos);
+                $reponse->getBody()->write(json_encode(["token" => $token]));
+                $response->withStatus(200);
+            }else{
+                $reponse->getBody()->write(json_encode(["mensaje" => "Acceso Denegado"]));
+                $response = $response->withStatus(400);
+            }
         }
-        
-        return $reponse
-            ->withHeader('Content-Type', 'application/json');
+        return $reponse;
     }
 }

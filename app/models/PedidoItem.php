@@ -1,7 +1,14 @@
 <?php
 
-class PedidoItem
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+class PedidoItem extends Model
 {
-    public $producto;
-    public $cantidad;
+    use SoftDeletes;
+    
+    public $timestamps = true;
+
+    protected $fillable = [
+        'codigo', 'estado', 'mesa'
+    ];
 }

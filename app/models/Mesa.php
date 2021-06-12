@@ -1,12 +1,18 @@
 <?php
 
-class Mesa
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+class Mesa extends Model
 {
-    public $codigo;
-    public $numero;
-    public $estado;
+    use SoftDeletes;
+    
+    public $timestamps = true;
 
-    public function crearMesa()
+    protected $fillable = [
+        'codigo', 'estado', 'mesa'
+    ];
+
+    /* public function crearMesa()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
         $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO mesas (codigo, numero, estado) VALUES (:codigo, :numero, :estado)");
@@ -55,5 +61,5 @@ class Mesa
         $consulta->bindValue(':id', $usuario, PDO::PARAM_INT);
         $consulta->bindValue(':fechaBaja', date_format($fecha, 'Y-m-d H:i:s'));
         $consulta->execute();
-    }
+    } */
 }

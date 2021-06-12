@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "018ff111def5371db05db1cc63fff781",
+    "content-hash": "68716b040c7bfbf6c08f51f581c5d7fb",
     "packages": [
         {
             "name": "doctrine/inflector",
@@ -444,16 +444,16 @@
         },
         {
             "name": "illuminate/database",
-            "version": "7.x-dev",
+            "version": "v7.30.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/illuminate/database.git",
-                "reference": "58371b9481b3eb5cc6399065972cd55d906be874"
+                "reference": "c7a35698106b1ed6b50f7fd4c30ec8e9fc900e41"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/illuminate/database/zipball/58371b9481b3eb5cc6399065972cd55d906be874",
-                "reference": "58371b9481b3eb5cc6399065972cd55d906be874",
+                "url": "https://api.github.com/repos/illuminate/database/zipball/c7a35698106b1ed6b50f7fd4c30ec8e9fc900e41",
+                "reference": "c7a35698106b1ed6b50f7fd4c30ec8e9fc900e41",
                 "shasum": ""
             },
             "require": {
@@ -502,7 +502,7 @@
                 "orm",
                 "sql"
             ],
-            "time": "2021-03-04T13:06:46+00:00"
+            "time": "2021-01-21T14:08:35+00:00"
         },
         {
             "name": "illuminate/support",
@@ -2547,9 +2547,7 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "illuminate/database": 20
-    },
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": [],

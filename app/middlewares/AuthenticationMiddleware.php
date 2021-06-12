@@ -2,7 +2,6 @@
 
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
-use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Factory\ResponseFactory;
@@ -13,6 +12,7 @@ class AuthenticationMiddleware implements MiddlewareInterface
 {
     public function process(Request $request, RequestHandlerInterface $handler): Response
     {
+        $token = '';
         $authHeaderString = $request->getHeader('Authorization');
         foreach ($authHeaderString as $header) {
             if(str_contains($header, 'Bearer')){
@@ -20,14 +20,19 @@ class AuthenticationMiddleware implements MiddlewareInterface
                 break;
             }
         }
-        try {
-            AutentificadorJWT::VerificarToken($token);
-            $request = $request->withAttribute('token', $token);
-            $response = $handler->handle($request);
-        } catch (\Throwable $th) {
+        if($token != ''){
+            try {
+                AutentificadorJWT::VerificarToken($token);
+                $request = $request->withAttribute('token', $token);
+                $response = $handler->handle($request);
+            } catch (\Throwable $th) {
+                $responseFactory = new ResponseFactory();
+                $response = $responseFactory->createResponse(400, 'Acceso Denegado!: '.$th->getMessage());
+                return $response;
+            }
+        }else{
             $responseFactory = new ResponseFactory();
-            $response = $responseFactory->createResponse(400, 'Acceso Denegado!: '.$th->getMessage());
-            return $response;
+            $response = $responseFactory->createResponse(400, 'Acceso Denegado: Token Inválido');
         }
         return $response;
     }

@@ -10,10 +10,10 @@ require_once './class/AutentificadorJWT.php';
 
 class AuthorizationMiddleware implements MiddlewareInterface
 {
-    private $rolesUsuarios = ['admin'];
-    private $rolesProductos = ['admin'];
-    private $rolesMesas = ['admin', 'mozo'];
-    private $rolesPedidos = ['admin', 'mozo'];
+    private $rolesUsuarios = ['socio'];
+    private $rolesProductos = ['socio'];
+    private $rolesMesas = ['socio', 'mozo'];
+    private $rolesPedidos = ['socio', 'mozo'];
     
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
