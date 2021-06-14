@@ -3,61 +3,48 @@
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
 
-require_once './models/Usuario.php';
-require_once './interfaces/IApiUsable.php';
+require_once './models/Loggers/LoginLogger.php';
 
-class UsuarioController implements IApiUsable
+class InformeController
 {   
-    public function CargarUno($request, $response, $args)
+    public function empleadosLogin(Request $request, Response $response)
     {
-        $parametros = $request->getParsedBody();
-
-        $usuario = $parametros['usuario'];
-        $clave = $parametros['clave'];
-        $rol = $parametros['rol'];
-
-        //Validar Rol
-        $this->validarRol($rol, $response);
-
-        //Buscar nombre de ususario en la db
-        $users = Usuario::where('usuario', '=', $usuario)->get();
-
-        if(count($users) > 0){
-            $response
-                ->getBody()
-                ->write(json_encode(["mensaje" => "El nombre de usuario ya existe"]));
-            return $response
-                ->withStatus(400);
-        }
-        
-        //validar pass
-        $this->validarPass($clave, $response);
-
-        // Creamos el usuario
-        $usr = new Usuario();
-        $usr->usuario = $usuario;
-        $claveHash = password_hash($clave, PASSWORD_DEFAULT);
-        $usr->clave = $claveHash;
-        $usr->rol = $rol;
-        $usr->estado = 'activo';
-
-        try {
-            $usr->save();
-        } catch (\Throwable $th) {
-            $response
-                ->getBody()
-                ->write(json_encode(["mensaje" => "Ocurrió un error al tratar de guardar el usuario en la base de datos"]));
-            return $response
-                ->withStatus(500);
-        }
-        
-        $response
-            ->getBody()
-            ->write(json_encode(["mensaje" => "Usuario creado con exito"]));
+        $ingresos = LoginLogger::all();
+        $response->getBody()->write(json_encode(['informe_ingresos'=>$ingresos]));
         return $response;
     }
+
+    public function empleadosOperacionesPorSector(Request $request, Response $response)
+    {
+        
+    }
+    public function empleadosOperacionesPorSectorPorEmpleado(Request $request, Response $response)
+    {
+
+    }
+    public function empleadosOperacionesPorEmpleado(Request $request, Response $response)
+    {
+
+    }
+
+    public function pedidosLoMasVendido(Request $request, Response $response)
+    {
+        
+    }
+    public function pedidosLoMenosVendido(Request $request, Response $response)
+    {
+
+    }
+    public function pedidosFueraDeTiempo(Request $request, Response $response)
+    {
+
+    }
+    public function pedidosCancelados(Request $request, Response $response)
+    {
+
+    }
     
-    public function TraerUno($request, $response, $args)
+    public function TraerUno(Request $request, Response $response, array $args)
     {
         // Buscamos usuario por nombre
         $user = Usuario::where('usuario', '=', $args['usuario'])->first();
@@ -70,7 +57,7 @@ class UsuarioController implements IApiUsable
         }
     }
 
-    public function TraerTodos($request, $response, $args)
+    public function TraerTodos(Request $request, Response $response, array $args)
     {
         $usuarios = Usuario::all();
         $response->getBody()->write(json_encode(["listaUsuarios" => $usuarios]));
@@ -89,7 +76,7 @@ class UsuarioController implements IApiUsable
         return $response;
     }
     
-    public function ModificarUno($request, $response, $args)
+    public function ModificarUno(Request $request, Response $response)
     {
         //Recibe los parámetros pasados en el body por x-www-form-urlencoded
         $parametros = $request->getParsedBody();
@@ -143,7 +130,7 @@ class UsuarioController implements IApiUsable
             return $response;
     }
 
-    public function BorrarUno($request, $response, $args)
+    public function BorrarUno(Response $response, array $args)
     {
         if(Usuario::destroy($args['id'])){
             $response->getBody()->write(json_encode(["mensaje"=>"El usuario fue eliminado con éxito"]));

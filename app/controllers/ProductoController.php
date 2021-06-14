@@ -5,8 +5,9 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Slim\Psr7\UploadedFile;
 
 require_once './models/Producto.php';
+require_once './interfaces/IApiUsable.php';
 
-class ProductoController
+class ProductoController implements IApiUsable
 {
     public function CargarUno($request, $response, $args)
     {
@@ -48,7 +49,7 @@ class ProductoController
                 ->getBody()
                 ->write(json_encode(["mensaje" => "Ocurrió un error al tratar de guardar el producto en la base de datos"]));
             return $response
-                ->withStatus(400);
+                ->withStatus(500);
         }
 
         $response

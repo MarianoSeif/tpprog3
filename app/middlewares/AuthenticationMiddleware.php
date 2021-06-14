@@ -27,39 +27,15 @@ class AuthenticationMiddleware implements MiddlewareInterface
                 $response = $handler->handle($request);
             } catch (\Throwable $th) {
                 $responseFactory = new ResponseFactory();
-                $response = $responseFactory->createResponse(400, 'Acceso Denegado!: '.$th->getMessage());
+                $response = $responseFactory->createResponse(400, 'AE: Acceso Denegado');
+                $response->getBody()->write(json_encode(['mensaje' => $th->getMessage()]));
                 return $response;
             }
         }else{
             $responseFactory = new ResponseFactory();
-            $response = $responseFactory->createResponse(400, 'Acceso Denegado: Token Inválido');
+            $response = $responseFactory->createResponse(400, 'Acceso Denegado');
+            $response->getBody()->write(json_encode(['mensaje' => 'Token Vacío']));
         }
         return $response;
     }
-    
-    /* public function verificarVerboYCredencialesJson(Request $request, RequestHandlerInterface $handler): Response
-    {
-        $response = new Response();
-        if($request->getMethod() === 'GET'){
-            $apiResponse = $handler->handle($request);
-            $response->getBody()->write((string)$apiResponse->getBody());
-        }
-        else if($request->getMethod() === 'POST'){
-            $data = $request->getParsedBody();
-            $obj = json_decode($data['obj_json']);
-            
-            if($obj->perfil === 'admin'){
-                $apiResponse = $handler->handle($request);
-                $response->getBody()->write((string)$apiResponse->getBody());
-            }else{
-                $data = ["mensaje" => "ERROR. {$obj->nombre} sin permisos"];
-                $payload = json_encode($data);
-                $response->getBody()->write($payload);
-                return $response
-                    ->withHeader('Content-Type', 'application/json')
-                    ->withStatus(403);
-            }
-        }
-        return $response->withHeader('Content-Type', 'application/json');
-	} */
 }

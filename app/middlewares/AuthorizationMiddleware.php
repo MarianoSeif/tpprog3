@@ -13,7 +13,8 @@ class AuthorizationMiddleware implements MiddlewareInterface
     private $rolesUsuarios = ['socio'];
     private $rolesProductos = ['socio'];
     private $rolesMesas = ['socio', 'mozo'];
-    private $rolesPedidos = ['socio', 'mozo'];
+    private $rolesPedidos = ['socio', 'mozo', 'bartender', 'cervecero', 'cocinero'];
+    private $rolesInformes = ['socio'];
     
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {

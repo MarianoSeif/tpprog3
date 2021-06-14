@@ -14,6 +14,11 @@ class Usuario extends Model
 
     const ROLES = ['mozo', 'socio', 'bartender', 'cervecero', 'cocinero', 'cliente'];
     const ESTADOS = ['activo', 'licencia', 'suspendido', 'despedido'];
+    const ROLES_PEDIDOS = [
+        'bartender' => ['barra'],
+        'cervecero' => ['chopera'],
+        'cocinero' => ['candy', 'comida']
+    ];
 
     /* public function __construct($rol = null, $usuario = null, $clave = null)
     {

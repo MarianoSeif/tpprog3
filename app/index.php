@@ -11,7 +11,6 @@ use Illuminate\Database\Capsule\Manager as Capsule;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-//require_once './db/AccesoDatos.php';
 require_once './middlewares/AuthenticationMiddleware.php';
 require_once './middlewares/AuthorizationMiddleware.php';
 require_once './middlewares/JsonMiddleware.php';
@@ -21,6 +20,7 @@ require_once './controllers/ProductoController.php';
 require_once './controllers/MesaController.php';
 require_once './controllers/PedidoController.php';
 require_once './controllers/LoginController.php';
+require_once './controllers/InformeController.php';
 
 //Load .env
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
@@ -58,12 +58,15 @@ date_default_timezone_set('America/Argentina/Buenos_Aires');
 // Routes
 $app->post('/login', \LoginController::class . ':login')->add(JsonMiddleware::class . ':process');
 $app->get('/test', \UsuarioController::class . ':test');
+$app->get('/lacuenta/{codigo}', \MesaController::class . ':traerLaCuenta');
+$app->post('/hacer/encuesta', \MesaController::class . ':encuesta');
+$app->post('/cuantofalta', \PedidoController::class . ':cuantoFalta');
 
 $app->group('/usuarios', function (RouteCollectorProxy $group) {
     $group->get('[/]', \UsuarioController::class . ':TraerTodos');
     $group->get('/{usuario}', \UsuarioController::class . ':TraerUno');
     $group->get('/rol/{rol}', \UsuarioController::class . ':TraerPorRol');
-    $group->post('[/]', \UsuarioController::class . ':crear');
+    $group->post('[/]', \UsuarioController::class . ':CargarUno');
     $group->put('[/{id}]', \UsuarioController::class . ':ModificarUno');
     $group->delete('[/{id}]', \UsuarioController::class . ':BorrarUno');
 })->add(AuthorizationMiddleware::class . ':process')->add(AuthenticationMiddleware::class . ':process')->add(JsonMiddleware::class . ':process');
@@ -79,16 +82,28 @@ $app->group('/productos', function (RouteCollectorProxy $group) {
 
 $app->group('/mesas', function (RouteCollectorProxy $group) {
     $group->get('[/]', \MesaController::class . ':TraerTodos');
+    $group->get('/lacuenta/{codigo}', \MesaController::class . ':traerLaCuenta');
+    $group->post('/cerrar/mesa', \MesaController::class . ':cerrarMesa');
     $group->get('/{codigo}', \MesaController::class . ':TraerUno');
     $group->post('[/]', \MesaController::class . ':CargarUno');
+    $group->delete('[/{id}]', \MesaController::class . ':BorrarUno');
 })->add(JsonMiddleware::class . ':process')->add(AuthenticationMiddleware::class . ':process');
 
 $app->group('/pedidos', function (RouteCollectorProxy $group) {
     $group->get('[/]', \PedidoController::class . ':TraerTodos');
+    $group->get('/pendientes', \PedidoController::class . ':pendientes');
     $group->get('/{codigo}', \PedidoController::class . ':TraerUno');
     $group->post('[/]', \PedidoController::class . ':CargarUno');
     $group->post('/cambiarestado', \PedidoController::class . ':cambiarEstado');
-})->add(JsonMiddleware::class . ':process')->add(AuthorizationMiddleware::class . ':process')->add(AuthenticationMiddleware::class . ':process');
+    $group->post('/item/cambiarestado', \PedidoController::class . ':cambiarEstadoItem');
+    $group->post('/item/tomar', \PedidoController::class . ':tomarPedidoItem');
+    $group->post('/item/servir', \PedidoController::class . ':servirPedidoItem');
+})->add(AuthorizationMiddleware::class . ':process')->add(AuthenticationMiddleware::class . ':process')->add(JsonMiddleware::class . ':process');
+
+$app->group('/informes', function (RouteCollectorProxy $group) {
+    $group->get('/empleados/login', \InformeController::class . ':empleadosLogin');
+    
+})->add(AuthorizationMiddleware::class . ':process')->add(AuthenticationMiddleware::class . ':process')->add(JsonMiddleware::class . ':process');
 
 $app->get('[/]', function (Request $request, Response $response) {
     $response->getBody()->write("Slim Framework 4 PHP");
