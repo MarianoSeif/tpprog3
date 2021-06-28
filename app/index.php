@@ -67,6 +67,7 @@ $app->group('/usuarios', function (RouteCollectorProxy $group) {
     $group->get('/{usuario}', \UsuarioController::class . ':TraerUno');
     $group->get('/rol/{rol}', \UsuarioController::class . ':TraerPorRol');
     $group->post('[/]', \UsuarioController::class . ':CargarUno');
+    $group->post('/cambiarestado', \UsuarioController::class . ':cambiarEstado');
     $group->put('[/{id}]', \UsuarioController::class . ':ModificarUno');
     $group->delete('[/{id}]', \UsuarioController::class . ':BorrarUno');
 })->add(AuthorizationMiddleware::class . ':process')->add(AuthenticationMiddleware::class . ':process')->add(JsonMiddleware::class . ':process');
@@ -98,10 +99,25 @@ $app->group('/pedidos', function (RouteCollectorProxy $group) {
     $group->post('/item/cambiarestado', \PedidoController::class . ':cambiarEstadoItem');
     $group->post('/item/tomar', \PedidoController::class . ':tomarPedidoItem');
     $group->post('/item/servir', \PedidoController::class . ':servirPedidoItem');
+    $group->post('/item/cancelar', \PedidoController::class . ':cancelarPedidoItem');
 })->add(AuthorizationMiddleware::class . ':process')->add(AuthenticationMiddleware::class . ':process')->add(JsonMiddleware::class . ':process');
 
 $app->group('/informes', function (RouteCollectorProxy $group) {
     $group->get('/empleados/login', \InformeController::class . ':empleadosLogin');
+    $group->get('/empleados/operacionesporsector', \InformeController::class . ':empleadosOperacionesPorSector');
+    $group->get('/empleados/operacionesporsectorporempleado', \InformeController::class . ':empleadosOperacionesPorSectorPorEmpleado');
+    $group->get('/empleados/operacionesporempleado', \InformeController::class . ':empleadosOperacionesPorEmpleado');
+    $group->get('/pedidos/masvendido', \InformeController::class . ':pedidosLoMasVendido');
+    $group->get('/pedidos/menosvendido', \InformeController::class . ':pedidosLoMenosVendido');
+    $group->get('/pedidos/fueradetiempo', \InformeController::class . ':pedidosFueraDeTiempo');
+    $group->get('/pedidos/cancelados', \InformeController::class . ':pedidosCancelados');
+    $group->get('/mesa/masusada', \InformeController::class . ':mesaMasUsada');
+    $group->get('/mesa/menosusada', \InformeController::class . ':mesaMenosUsada');
+    $group->get('/mesa/masfacturo', \InformeController::class . ':mesaMasFacturo');
+    $group->get('/mesa/menosfacturo', \InformeController::class . ':mesaMenosFacturo');
+    $group->get('/mesa/facturacionentrefechas', \InformeController::class . ':mesaFacturacionEntreFechas');
+    $group->get('/mesa/mejorescomentarios', \InformeController::class . ':mesaMejoresComentarios');
+    $group->get('/mesa/peorescomentarios', \InformeController::class . ':mesaPeoresComentarios');
     
 })->add(AuthorizationMiddleware::class . ':process')->add(AuthenticationMiddleware::class . ':process')->add(JsonMiddleware::class . ':process');
 
@@ -111,39 +127,3 @@ $app->get('[/]', function (Request $request, Response $response) {
 });
 
 $app->run();
-
-/* 
-//Ejercicio 1 10-5-21
-$app->group('/credenciales', function (RouteCollectorProxy $group) {
- 
-  $group->get('/', function (Request $request, Response $response) {
-    $response->getBody()->write('API => GET');
-    return $response;
-  });
-
-  $group->post('/', function (Request $request, Response $response) {
-    $response->getBody()->write('API => POST');
-    return $response;
-  });
-     
-})->add(MW_ejercicio1::class . ':verificarVerboYCredenciales');
-
-//Ejercicio 2 10-5-21
-$app->group('/json', function (RouteCollectorProxy $group) {
- 
-  $group->get('/', function (Request $request, Response $response) {
-    $data = ['mensaje' => 'API => GET'];
-    $payload = json_encode($data);
-    $response->getBody()->write($payload);
-    return $response->withHeader('Content-Type', 'application/json');
-  });
-
-  $group->post('/', function (Request $request, Response $response) {
-    $data = ["mensaje" => "API => POST"];
-    $payload = json_encode($data);
-    $response->getBody()->write($payload);
-    return $response->withHeader('Content-Type', 'application/json');
-  });
-     
-})->add(MW_ejercicio1::class . ':verificarVerboYCredencialesJson');
- */

@@ -26,10 +26,11 @@ class AuthorizationMiddleware implements MiddlewareInterface
         $data = AutentificadorJWT::ObtenerData($request->getAttribute('token'));
 
         if(in_array($data->rol, $this->{'roles' . ucfirst($seccion)})){
-            $response = $handler->handle($request);    
+            $response = $handler->handle($request);
         }else{
             $responseFactory = new ResponseFactory();
-            $response = $responseFactory->createResponse(400, 'No tenés los permisos necesarios');
+            $response = $responseFactory->createResponse(400, 'Access Denied');
+            $response->getBody()->write(json_encode(["mensaje"=>"No tenés los permisos necesarios"]));
             return $response;
         }
         return $response;

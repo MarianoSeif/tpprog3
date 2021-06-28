@@ -2,15 +2,17 @@
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-class PedidoItem extends Model
+
+class UsuarioLogger extends Model
 {
     use SoftDeletes;
     
     public $timestamps = true;
+    
+    protected $table = 'log_usuarios';
 
     protected $fillable = [
-        'codigo', 'cantidad', 'tipo', 'empleado_id', 'hora_de_salida', 'estado'
+        'empleado_id', 'estado_anterior', 'estado_atual'
     ];
 
-    const ESTADOS = ['pendiente', 'en preparacion', 'listo', 'servido'];
 }

@@ -5,6 +5,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 
 require_once './models/Usuario.php';
 require_once './interfaces/IApiUsable.php';
+require_once './services/LoggerService.php';
 
 class UsuarioController implements IApiUsable
 {   
@@ -43,6 +44,8 @@ class UsuarioController implements IApiUsable
 
         try {
             $usr->save();
+            $logger = new LoggerService();
+            $logger->logUsuario($usr->id, null, $usr->estado);
         } catch (\Throwable $th) {
             $response
                 ->getBody()
@@ -99,56 +102,65 @@ class UsuarioController implements IApiUsable
             return $response;
         }else{
             $usr = Usuario::find($parametros['id']);
+            if(!$usr){
+                $response->getBody()->write(json_encode(["mensaje"=>"No se encontró el usuario"]));
+                return $response->withStatus(400);
+            }
         }
 
-        if($usr){
-            if(isset($parametros['clave'])){
-                if(!$this->validarPass($parametros['clave'], $response)){
-                    return $response->withStatus(400);
-                }
-                $usr->clave = password_hash($parametros['clave'], PASSWORD_DEFAULT);
+        $estadoAnterior = null;
+        
+        if(isset($parametros['clave'])){
+            if(!$this->validarPass($parametros['clave'], $response)){
+                return $response->withStatus(400);
             }
-            if(isset($parametros['rol'])){
-                if(!$this->validarRol($parametros['rol'], $response)){
-                    return $response->withStatus(400);
-                }
-                $usr->rol = $parametros['rol'];
+            $usr->clave = password_hash($parametros['clave'], PASSWORD_DEFAULT);
+        }
+        if(isset($parametros['rol'])){
+            if(!$this->validarRol($parametros['rol'], $response)){
+                return $response->withStatus(400);
             }
-            if(isset($parametros['estado'])){
-                if(!$this->validarEstado($parametros['estado'], $response)){
-                    return $response->withStatus(400);
-                }
-                $usr->estado = $parametros['estado'];
+            $usr->rol = $parametros['rol'];
+        }
+        if(isset($parametros['estado'])){
+            if(!$this->validarEstado($parametros['estado'], $response)){
+                return $response->withStatus(400);
             }
+            $estadoAnterior = $usr->estado;
+            $usr->estado = $parametros['estado'];
+        }
 
-            try {
-                $usr->save();
-            } catch (\Throwable $th) {
-                $response
-                    ->getBody()
-                    ->write(json_encode(["mensaje" => "Ocurrió un error al tratar de guardar el usuario en la base de datos"]));
-                return $response
-                    ->withStatus(500);
+        try {
+            $usr->save();
+            if(!is_null($estadoAnterior) && $estadoAnterior != $usr->estado){
+                $logger = new LoggerService();
+                $logger->logUsuario($usr->id, $estadoAnterior, $usr->estado);
             }
+        } catch (\Throwable $th) {
+            var_dump($th);
+            $response->getBody()->write(json_encode(["mensaje" => "Ocurrió un error al tratar de guardar el usuario en la base de datos"]));
+            return $response->withStatus(500);
+        }
             
-            $response
-                ->getBody()
-                ->write(json_encode(["mensaje" => "Usuario modificado con exito"]));
-            return $response;
-        }
-
-        $response
-                ->getBody()
-                ->write(json_encode(["mensaje" => "Usuario no encontrado"]));
-            return $response;
+        $response->getBody()->write(json_encode(["mensaje" => "Usuario modificado con exito"]));
+        return $response;        
     }
 
     public function BorrarUno($request, $response, $args)
     {
+        $usr = Usuario::find($args['id']);
+        if(!$usr){
+            $response->getBody()->write(json_encode(["mensaje"=>"No se encontró el usuario"]));
+            return $response->withStatus(400);
+        }
+        
+        $estadoAnterior = $usr->estado;
         if(Usuario::destroy($args['id'])){
             $response->getBody()->write(json_encode(["mensaje"=>"El usuario fue eliminado con éxito"]));
+            $logger = new LoggerService();
+            $logger->logUsuario($usr->id, $estadoAnterior, 'eliminado');
         }else{
-            $response->getBody()->write(json_encode(["mensaje"=>"No se encontró el usuario"]));
+            $response->getBody()->write(json_encode(["mensaje"=>"No se pudo eliminar"]));
         }
         return $response;
     }
@@ -185,11 +197,4 @@ class UsuarioController implements IApiUsable
         }
         return true;
     }
-
-    public function test(Request $request, Response $response, array $args)
-    {
-        
-        return $response;
-    }
-
 }

@@ -49,6 +49,17 @@ class PedidoController implements IApiUsable
                     break;
                 case 'cancelado':
                     $pedido->estado = 'cancelado';
+                    //Cancelo los items del pedido
+                    $pedidoItems = PedidoItem::where('pedido_id', '=', $pedido->id)->get();
+                    foreach ($pedidoItems as $item) {
+                        $item->estado = 'cancelado';
+                        try {
+                            $item->save();
+                        } catch (\Throwable $th) {
+                            $response->getBody()->write(json_encode(['mensaje'=>'Ocurrió un problema al intentar acceder a la base de datos']));
+                            return $response->withStatus(500);
+                        }
+                    }
                     break;
                 default:
                     $response->getBody()->write(json_encode(['mensaje'=>'Los estados permitidos son: 1-recibido, 2-en preparacion, 3-listo para servir, 4-servido', '5-cancelado']));
@@ -80,14 +91,24 @@ class PedidoController implements IApiUsable
         $codigo = $parametros['codigo'];
         $mesa = $parametros['mesa'];
         
+        $nombreImagen = null;
+        if(isset($_FILES['imagen']) || !empty($_FILES['imagen'])){
+            $nombreImagen = 'Pedido'.'_'.$codigo.'_'.$_FILES['imagen']['name'];
+            move_uploaded_file($_FILES['imagen']['tmp_name'], './imagenes/pedidos/'.$nombreImagen);
+        }
+
         $pedido = new Pedido();
         $pedido->codigo = $codigo;
         $pedido->mesa = $mesa;
         $pedido->estado = 'recibido';
+        if(!is_null($nombreImagen)){
+            $pedido->imagen = $nombreImagen;
+        }
         
         try {
             $pedido->save();
         } catch (\Throwable $th) {
+            var_dump($th);
             $response
                 ->getBody()
                 ->write(json_encode(["mensaje" => "Ocurrió un error al tratar de guardar el pedido en la base de datos"]));
@@ -101,50 +122,64 @@ class PedidoController implements IApiUsable
         //Guardo los items del pedido
         unset($parametros['codigo']);
         unset($parametros['mesa']);
-
+        
+        $faltantes = [];
         foreach ($parametros as $key => $value) {
             $item = new PedidoItem();
             $item->pedido_id = $pedido->id;
-            $item->codigo = $key;
-            $item->cantidad = $value;
-            $item->tipo = Producto::getTipo($key);
-            $item->estado = 'pendiente';
-            $item->save();
-            try {
-                $item->save();
-            } catch (\Throwable $th) {
-                $response
-                    ->getBody()
-                    ->write(json_encode(["mensaje" => "Ocurrió un error al tratar de guardar el pedido en la base de datos"]));
-                return $response
-                    ->withStatus(500);
+            $producto = Producto::where('codigo', '=', $key)->first();
+            if($producto){
+                $item->codigo = $producto->codigo;
+                $item->cantidad = $value;
+                $item->tipo = $producto->tipo;
+                $item->estado = 'pendiente';
+                try {
+                    $item->save();
+                } catch (\Throwable $th) {
+                    $response
+                        ->getBody()
+                        ->write(json_encode(["mensaje" => "Ocurrió un error al tratar de guardar el pedido en la base de datos"]));
+                    return $response
+                        ->withStatus(500);
+                }
+                $logger->logPedidoItem($item->id, $data->id, null, $item->estado);
+            }else{
+                $faltantes[] = $key;
             }
-            $logger->logPedidoItem($item->id, $data->id, null, $item->estado);
         }
 
-        $response->getBody()->write(json_encode(["mensaje" => "Pedido creado con exito"]));
+        if(count($faltantes)>0){
+            $response->getBody()->write(json_encode([
+                "mensaje" => "Se creó el pedido pero hay faltantes",
+                "faltantes" => $faltantes
+            ]));
+        }else{
+            $response->getBody()->write(json_encode(["mensaje" => "Pedido creado con exito"]));
+        }
         return $response;
     }
 
     public function TraerUno($request, $response, $args)
     {
-        $codigo = $args['codigo'];
-        $pedido = Pedido::obtenerPedido($codigo);
-        $payload = json_encode($pedido);
-
-        $response->getBody()->write($payload);
-        return $response
-          ->withHeader('Content-Type', 'application/json');
+        $pedido = Pedido::where('codigo', '=', $args['codigo'])->first();
+        if(!$pedido){
+            $response->getBody()->write(json_encode(["mensaje"=>"El pedido no existe"]));
+            return $response->withStatus(400);
+        }else{
+            $items = PedidoItem::where('pedido_id', '=', $pedido->id)->get();
+            $response->getBody()->write(json_encode([
+                "Pedido"=>$pedido,
+                "Items"=>$items
+            ]));
+            return $response;
+        }
     }
 
     public function TraerTodos($request, $response, $args)
     {
-        $lista = Pedido::obtenerTodos();
-        $payload = json_encode(array("listaPedidos" => $lista));
-
-        $response->getBody()->write($payload);
-        return $response
-          ->withHeader('Content-Type', 'application/json');
+        $pedidos = Pedido::all();
+        $response->getBody()->write(json_encode(["Pedidos" => $pedidos]));
+        return $response;
     }
 
     public function ModificarUno($request, $response, $args)
@@ -220,15 +255,26 @@ class PedidoController implements IApiUsable
         $pedidoItem->empleado_id = $data->id;
         $pedidoItem->hora_de_salida = date('Y-m-d H:i:s', strtotime('+'.$minutos.' minutes'));
         $pedidoItem->estado = 'en preparacion';
+
         try {
             $pedidoItem->save();
         } catch (\Throwable $th) {
-            $response->getBody()->write(json_encode(["mensaje" => "Ocurrió un error al tratar de guardar el pedido en la base de datos"]));
+            $response->getBody()->write(json_encode(["mensaje" => "Ocurrió un error al tratar de guardar el item en la base de datos"]));
             return $response->withStatus(500);
         }
 
         $logger = new LoggerService();
         $logger->logPedidoItem($pedidoItem->id, $data->id, $estadoAnterior, $pedidoItem->estado);
+
+        //Actualizo el estado del pedido
+        try {
+            $pedido = Pedido::find($pedidoItem->pedido_id);
+            $pedido->estado = 'en preparacion';
+            $pedido->save();
+        } catch (\Throwable $th) {
+            $response->getBody()->write(json_encode(["mensaje" => "Ocurrió un error al tratar de actualizar el estado del pedido en la base de datos"]));
+            return $response;
+        }
 
         $response->getBody()->write(json_encode(["mensaje" => "Acabas de tomar el pedido para preparación. A trabajar!"]));
         return $response;
@@ -244,8 +290,8 @@ class PedidoController implements IApiUsable
         $parametros = $request->getParsedBody();
         $pedidoItem = PedidoItem::find($parametros['pedidoItemId']);
         $estadoAnterior = $pedidoItem->estado;
-        if($pedidoItem->empleado_id != $data->id || $pedidoItem->estado == 'pendiente'){
-            $response->getBody()->write(json_encode(['mensaje' => 'El pedido no te corresponde o aún no lo tomaste']));
+        if($pedidoItem->empleado_id != $data->id || $pedidoItem->estado == 'pendiente' || $pedidoItem->estado == 'listo para servir'){
+            $response->getBody()->write(json_encode(['mensaje' => 'El pedido no te corresponde, aún no lo tomaste o ya está listo para servir']));
             return $response;
         }
 
@@ -267,45 +313,55 @@ class PedidoController implements IApiUsable
 
     public function servirPedidoItem(Request $request, Response $response)
     {
+        $logger = new LoggerService();
         $data = AutentificadorJWT::ObtenerData($request->getAttribute('token'));
-        
-        $parametros = $request->getParsedBody();
-        $pedidoItem = PedidoItem::find($parametros['pedidoItemId']);
-        $estadoAnterior = $pedidoItem->estado;
-
-        if($data->rol != 'mozo' || $pedidoItem->estado != 'listo para servir'){
-            $response->getBody()->write(json_encode(['mensaje' => 'El pedido no te corresponde o no es momento de servirlo']));
+        if(!($data->rol == 'socio' || $data->rol == 'mozo')){
+            $response->getBody()->write(json_encode(['mensaje' => 'Sólo los mozos o los socios pueden servir pedidos']));
             return $response;
         }
 
-        $pedidoItem->estado = 'servido';
+        $parametros = $request->getParsedBody();
+        $ids = explode(',', $parametros['pedidoItemId']);
+
+        $respuesta = [];
         
-        try {
-            $pedidoItem->save();    
-        } catch (\Throwable $th) {
-            $response->getBody()->write(json_encode(["mensaje" => "Ocurrió un error al tratar de guardar el pedido en la base de datos"]));
-            return $response->withStatus(500);
+        foreach ($ids as $id) {
+            if($id !=''){
+                $pedidoItem = PedidoItem::find(trim($id));
+                $estadoAnterior = $pedidoItem->estado;
+
+                if($pedidoItem->estado != 'listo para servir'){
+                    $respuesta[] = 'Alguno de los items no está listo para servir o ya fue servido';
+                }
+
+                $pedidoItem->estado = 'servido';
+                
+                try {
+                    $pedidoItem->save();
+                } catch (\Throwable $th) {
+                    $response->getBody()->write(json_encode(["mensaje" => "Ocurrió un error al tratar de guardar el item en la base de datos"]));
+                    return $response->withStatus(500);
+                }
+                
+                $logger->logPedidoItem($pedidoItem->id, $data->id, $estadoAnterior, $pedidoItem->estado);
+
+                if(!$this->actualizarPedidoYMesa($pedidoItem->pedido_id, $logger, $data->id)){
+                    $respuesta[] = "El item fue servido pero ocurrió un error al tratar de actualizar el estado del pedido y la mesa en la base de datos";
+                }
+            }
         }
-
-        $logger = new LoggerService();
-        $logger->logPedidoItem($pedidoItem->id, $data->id, $estadoAnterior, $pedidoItem->estado);
-
-        if($this->actualizarPedidoYMesa($pedidoItem->pedido_id, $logger, $data->id)){
-            $response->getBody()->write(json_encode(["mensaje" => "Pedido servido"]));
-            return $response;            
-        }else{
-            $response->getBody()->write(json_encode(["mensaje" => "El pedido fue servido pero ocurrió un error al tratar de actualizar el estado del pedido y la mesa"]));
-            return $response->withStatus(500);
-        }
-
+        $respuesta["mensaje"] = "Pedido servido";
+        $response->getBody()->write(json_encode($respuesta));
+        return $response;
     }
 
     private function actualizarPedidoYMesa($pedido_id, $logger, $empleado_id)
     {
         $pedidoCompletado = true;
+        //Reviso el estado de todos los items del pedido
         $pedidoItems = PedidoItem::where('pedido_id', '=', $pedido_id)->get();
         foreach ($pedidoItems as $item) {
-            if($item->estado != 'servido'){
+            if($item->estado != 'servido' && $item->estado != 'cancelado'){
                 $pedidoCompletado = false;
             }
         }
@@ -319,19 +375,26 @@ class PedidoController implements IApiUsable
             $pedido->estado = 'servido parcial';
         }
 
-        //Actualizo estado Mesa
-        $mesa = Mesa::where('codigo', '=', $pedido->mesa)->first();
-        $mesa->estado = 'con cliente comiendo';
-
         try {
             $pedido->save();
-            $mesa->save();
+            $logger->logPedido($pedido_id, $empleado_id, $estadoAnterior, $pedido->estado);
         } catch (\Throwable $th) {
             return false;
         }
-        $logger->logPedido($pedido_id, $empleado_id, $estadoAnterior, $pedido->estado);
-        //log mesa
 
+        //Actualizo estado Mesa
+        $mesa = Mesa::where('codigo', '=', $pedido->mesa)->first();
+        if($mesa->estado == 'con cliente esperando pedido'){
+            $mesaEstadoAnterior = $mesa->estado;
+            $mesa->estado = 'con cliente comiendo';
+    
+            try {
+                $mesa->save();
+                $logger->logMesa($mesa->id, $empleado_id, $mesaEstadoAnterior, $mesa->estado);
+            } catch (\Throwable $th) {
+                return false;
+            }            
+        }
         return true;
     }
 
@@ -353,6 +416,43 @@ class PedidoController implements IApiUsable
         }
         
         $response->getBody()->write(json_encode(["mensaje" => "Hora estimada de entrega del pedido: ".$fecha]));
+        return $response;
+    }
+
+    public function cancelarPedidoItem(Request $request, Response $response)
+    {
+        $data = AutentificadorJWT::ObtenerData($request->getAttribute('token'));
+        
+        $parametros = $request->getParsedBody();
+        $pedidoItem = PedidoItem::find($parametros['pedidoItemId']);
+        $estadoAnterior = $pedidoItem->estado;
+
+        if($data->rol != 'mozo' || $pedidoItem->estado == 'servido'){
+            $response->getBody()->write(json_encode(['mensaje' => 'No podés cancelar pedidos o el pedido ya fue servido']));
+            return $response;
+        }
+
+        $pedidoItem->estado = 'cancelado';
+        
+        try {
+            $pedidoItem->save();    
+        } catch (\Throwable $th) {
+            $response->getBody()->write(json_encode(["mensaje" => "Ocurrió un error al tratar de guardar el pedido en la base de datos"]));
+            return $response->withStatus(500);
+        }
+
+        $logger = new LoggerService();
+        $logger->logPedidoItem($pedidoItem->id, $data->id, $estadoAnterior, $pedidoItem->estado);
+
+        if($this->actualizarPedidoYMesa($pedidoItem->pedido_id, $logger, $data->id)){
+            $response->getBody()->write(json_encode(["mensaje" => "Pedido cancelado"]));
+            return $response;            
+        }else{
+            $response->getBody()->write(json_encode(["mensaje" => "El pedido fue cancelado pero ocurrió un error al tratar de actualizar el estado del pedido y la mesa"]));
+            return $response->withStatus(500);
+        }
+
+        $response->getBody()->write(json_encode(["mensaje" => "Item cancelado"]));
         return $response;
     }
 }

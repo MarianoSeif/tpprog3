@@ -9,8 +9,8 @@ class Pedido extends Model
     public $timestamps = true;
 
     protected $fillable = [
-        'codigo', 'estado', 'mesa'
+        'codigo', 'estado', 'mesa', 'total', 'imagen'
     ];
 
-    const ESTADOS = ['recibido'];
+    const ESTADOS = ['recibido', 'en preparacion', 'servido parcial', 'servido'];
 }
